@@ -5,6 +5,10 @@ import lombok.Data;
 
 @Data
 public class CreateUserBase {
+
+    public CreateUserBase() {
+    }
+
     @JsonProperty("name")
     public String name;
     @JsonProperty("job")

@@ -1,6 +1,7 @@
 package com.automation.demo.stepdefinitions;
 
 import com.automation.demo.api.HttpClientHelper;
+import com.automation.demo.models.request.CreateNewUserRequest;
 import com.automation.demo.models.response.GetAllUserBaseResponse;
 import com.automation.demo.models.response.GetAllUsersData;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -15,6 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.junit.Assert;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -28,6 +30,7 @@ public class UsersStepdefinitions {
     private String reqResBaseUrl = "https://reqres.in";
 
     private GetAllUserBaseResponse getAllUserBaseResponse;
+    private CreateNewUserRequest createNewUserRequest;
 
     private Map<String, String> apiResponseData;
 
@@ -36,6 +39,7 @@ public class UsersStepdefinitions {
         httpClientHelper = new HttpClientHelper();
         objectMapper = new ObjectMapper();
         getAllUserBaseResponse = new GetAllUserBaseResponse();
+        createNewUserRequest = new CreateNewUserRequest();
         apiResponseData = new HashMap<>();
     }
 
@@ -43,6 +47,7 @@ public class UsersStepdefinitions {
     public void userPreparesRequest(String requestType) {
         switch (requestType) {
             case "Get All Users":
+                log.info("Creating Get Endpoint Url");
                 httpRequestUrl = reqResBaseUrl + "/api/users?page=1";
                 break;
             default:
@@ -51,10 +56,20 @@ public class UsersStepdefinitions {
     }
 
     @Given("User prepares {string} request with below data")
-    public void userPreparesRequestWithBelowData(String requestType, DataTable requestData) {
+    public void userPreparesRequestWithBelowData(String requestType, DataTable requestData) throws JsonProcessingException {
         switch (requestType) {
             case "Create New User":
+                log.info("Creating Post Endpoint Url");
                 httpRequestUrl = reqResBaseUrl + "/api/users";
+
+                List<Map<String, String>> requestRows = requestData.asMaps(String.class, String.class);
+                Map<String, String> requestRow = requestRows.get(0);
+
+                log.info("Post Request JSON: ");
+                createNewUserRequest.setName(requestRow.get("Name"));
+                createNewUserRequest.setJob("Job");
+
+                log.info("{}", objectMapper.writeValueAsString(createNewUserRequest));
                 break;
             default:
                 Assert.fail("Invalid Request Type");
@@ -62,13 +77,15 @@ public class UsersStepdefinitions {
     }
 
     @When("{string} Request is submitted")
-    public void requestIsSubmitted(String httpMethod) {
+    public void requestIsSubmitted(String httpMethod) throws JsonProcessingException {
         switch (httpMethod) {
             case "Get":
+                log.info("Submitting Get Request");
                 apiResponseData = httpClientHelper.submitGetRequestAndReturnResponse(httpRequestUrl);
                 break;
             case "Post":
-
+                log.info("Submitting Post Request");
+                apiResponseData = httpClientHelper.submitPostRequestAndReturnResponse(httpRequestUrl, objectMapper.writeValueAsString(createNewUserRequest));
                 break;
             default:
                 Assert.fail("Invalid Http Method");
@@ -77,6 +94,7 @@ public class UsersStepdefinitions {
 
     @Then("Response Code is {string}")
     public void responseCodeIs(String responseCode) {
+        log.info("Verifying Response code");
         Assert.assertEquals("Response code is not as expected", responseCode, apiResponseData.get("ResponseCode"));
     }
 
@@ -84,6 +102,7 @@ public class UsersStepdefinitions {
     public void userDataInResponseIsAsExpected() throws JsonProcessingException {
         getAllUserBaseResponse = objectMapper.readValue(apiResponseData.get("ResponseBody"), GetAllUserBaseResponse.class);
 
+        log.info("Verifying Get All Users Response JSON data");
         Assert.assertTrue("Page value is 0", getAllUserBaseResponse.getPage() > 0);
         Assert.assertTrue("Per Page value is 0", getAllUserBaseResponse.getPerPage() > 0);
         Assert.assertTrue("Total value is 0", getAllUserBaseResponse.getTotal() > 0);

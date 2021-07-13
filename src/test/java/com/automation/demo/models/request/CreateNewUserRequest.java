@@ -10,4 +10,6 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = true)
 public class CreateNewUserRequest extends CreateUserBase {
     //This Request class will have fields from the base class
+    public CreateNewUserRequest() {
+    }
 }
